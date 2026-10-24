@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  COMPANY
+  RIDER
+  CUSTOMER
+}
+
+enum OrderStatus {
+  PENDING
+  ACCEPTED
+  PICKED_UP
+  IN_TRANSIT
+  DELIVERED
+  CANCELLED
+  FAILED
+}
+
+enum RiderStatus {
+  AVAILABLE
+  BUSY
+  OFFLINE
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+enum CompanyStatus {
+  PENDING_APPROVAL
+  ACTIVE
+  SUSPENDED
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  INACTIVE
+  PAST_DUE
+  CANCELLED
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  phone        String    @unique
+  password     String
+  role         Role
+  firstName    String
+  lastName     String
+  avatar       String?
+  isVerified   Boolean   @default(false)
+  isActive     Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  refreshToken String?
+
+  company      Company?  @relation("CompanyOwner")
+  rider        Rider?
+  ordersAsCustomer Order[] @relation("CustomerOrders")
+  notifications Notification[]
+}
+
+model Company {
+  id              String        @id @default(uuid())
+  ownerId         String        @unique
+  owner           User          @relation("CompanyOwner", fields: [ownerId], references: [id])
+  name            String
+  description     String?
+  logo            String?
+  coverImage      String?
+  state           String
+  city            String
+  address         String
+  email           String?
+  rcNumber        String?       // Business registration number
+  status          CompanyStatus @default(PENDING_APPROVAL)
+  rating          Float         @default(0)
+  totalDeliveries Int           @default(0)
+  walletBalance   Float         @default(0)
+  bankName        String?
+  accountNumber   String?
+  accountName     String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  riders          Rider[]
+  orders          Order[]
+  transactions    Transaction[]
+  earnings        Earning[]
+  subscription    Subscription?
+}
+
+model Subscription {
+  id                       String             @id @default(uuid())
+  companyId                String             @unique
+  company                  Company            @relation(fields: [companyId], references: [id])
+  paystackCustomerCode     String?
+  paystackSubscriptionCode String?
+  paystackPlanCode         String?
+  paystackEmailToken       String?
+  status                   SubscriptionStatus @default(INACTIVE)
+  currentPeriodStart       DateTime?
+  currentPeriodEnd         DateTime?
+  amount                   Float              @default(30000)
+  nextPaymentDate          DateTime?
+  createdAt                DateTime           @default(now())
+  updatedAt                DateTime           @updatedAt
+}
+
+model Rider {
+  id               String      @id @default(uuid())
+  userId           String      @unique
+  user             User        @relation(fields: [userId], references: [id])
+  companyId        String
+  company          Company     @relation(fields: [companyId], references: [id])
+  vehicleType      String      // motorcycle, bicycle, car, van
+  vehiclePlate     String?
+  vehicleModel     String?
+  licenseNumber    String?
+  nin              String?     // National Identification Number
+  status           RiderStatus @default(OFFLINE)
+  currentLat       Float?
+  currentLng       Float?
+  rating           Float       @default(0)
+  totalDeliveries  Int         @default(0)
+  walletBalance    Float       @default(0)
+  bankName         String?
+  accountNumber    String?
+  accountName      String?
+  isApproved       Boolean     @default(false)
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  orders           Order[]
+  earnings         RiderEarning[]
+}
+
+model Order {
+  id                  String        @id @default(uuid())
+  orderNumber         String        @unique
+  companyId           String
+  company             Company       @relation(fields: [companyId], references: [id])
+  customerId          String
+  customer            User          @relation("CustomerOrders", fields: [customerId], references: [id])
+  riderId             String?
+  rider               Rider?        @relation(fields: [riderId], references: [id])
+
+  pickupAddress       String
+  pickupLat           Float
+  pickupLng           Float
+  pickupContactName   String
+  pickupContactPhone  String
+
+  deliveryAddress     String
+  deliveryLat         Float
+  deliveryLng         Float
+  deliveryContactName String
+  deliveryContactPhone String
+
+  packageDescription  String
+  packageWeight       Float?        // kg
+  isFragile           Boolean       @default(false)
+
+  deliveryFee         Float
+  platformFee         Float
+  totalAmount         Float
+  paymentStatus       PaymentStatus @default(PENDING)
+
+  status              OrderStatus   @default(PENDING)
+  estimatedDistance   Float?        // km
+  estimatedDuration   Int?          // minutes
+  trackingCode        String        @unique
+
+  scheduledAt         DateTime?
+  acceptedAt          DateTime?
+  pickedUpAt          DateTime?
+  deliveredAt         DateTime?
+  cancelledAt         DateTime?
+
+  notes               String?
+  proofOfDelivery     String?       // photo URL
+  customerRating      Int?
+  riderRating         Int?
+  companyRating       Int?
+
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  riderEarning        RiderEarning?
+  companyEarning      Earning?
+}
+
+model RiderEarning {
+  id          String   @id @default(uuid())
+  riderId     String
+  rider       Rider    @relation(fields: [riderId], references: [id])
+  orderId     String   @unique
+  order       Order    @relation(fields: [orderId], references: [id])
+  amount      Float
+  isPaid      Boolean  @default(false)
+  paidAt      DateTime?
+  createdAt   DateTime @default(now())
+}
+
+model Earning {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  orderId     String   @unique
+  order       Order    @relation(fields: [orderId], references: [id])
+  amount      Float
+  platformFee Float
+  netAmount   Float
+  isPaid      Boolean  @default(false)
+  createdAt   DateTime @default(now())
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id])
+  type        String   // credit, debit, withdrawal
+  amount      Float
+  reference   String   @unique
+  description String
+  createdAt   DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String   // order_update, payment, system, promotion
+  isRead    Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+}
+
+model State {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
