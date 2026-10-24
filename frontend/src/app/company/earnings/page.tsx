@@ -151,9 +151,9 @@ export default function CompanyEarningsPage() {
 
           {/* Stats */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <StatCard icon={DollarSign} label="Today" value={formatCurrency(summary.today || 0)} trend="+12%" positive delay={0.05} />
-            <StatCard icon={TrendingUp} label="This Week" value={formatCurrency(summary.thisWeek || 0)} trend="+8%" positive delay={0.1} />
-            <StatCard icon={DollarSign} label="This Month" value={formatCurrency(summary.thisMonth || 0)} trend="+15%" positive delay={0.15} />
+            <StatCard icon={DollarSign} label="Today" value={formatCurrency(summary.today || 0)} trend={{ value: 12, label: "vs yesterday" }} delay={0.05} />
+            <StatCard icon={TrendingUp} label="This Week" value={formatCurrency(summary.thisWeek || 0)} trend={{ value: 8, label: "vs last week" }} delay={0.1} />
+            <StatCard icon={DollarSign} label="This Month" value={formatCurrency(summary.thisMonth || 0)} trend={{ value: 15, label: "vs last month" }} delay={0.15} />
             <StatCard icon={Package} label="Total Orders" value={summary.totalOrders || 0} delay={0.2} />
           </div>
 
