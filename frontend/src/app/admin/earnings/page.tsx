@@ -53,7 +53,7 @@ export default function AdminEarningsPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard icon={DollarSign} label="This Month" value={formatCurrency(summary.thisMonth || 0)} trend="+15%" positive delay={0} />
+        <StatCard icon={DollarSign} label="This Month" value={formatCurrency(summary.thisMonth || 0)} trend={{ value: 15, label: 'vs last month' }} delay={0} />
         <StatCard icon={TrendingUp} label="Last Month" value={formatCurrency(summary.lastMonth || 0)} delay={0.05} />
         <StatCard icon={Package} label="Total Orders" value={(summary.totalOrders || 0).toLocaleString()} delay={0.1} />
         <StatCard icon={Users} label="Active Companies" value={summary.activeCompanies || 0} delay={0.15} />
